@@ -4,3 +4,6 @@
 101						RCDATA    DISCARDABLE "Images/copytoasm_clipboard.png"
 102						RCDATA    DISCARDABLE "Images/copytoasm_refview.png"
 100						RCDATA    DISCARDABLE "Images/copytoasm_main.png"
+121						RCDATA    DISCARDABLE "Images/check.png"
+122						RCDATA    DISCARDABLE "Images/nocheck.png"
+123						RCDATA    DISCARDABLE "Images/options.png"
