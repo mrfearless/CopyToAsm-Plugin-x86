@@ -21,7 +21,7 @@ DoCopyToAsm                         PROTO :DWORD
 CTABuildJmpTable                    PROTO :DWORD, :DWORD
 CTAClearJmpTable                    PROTO
 CTAAddressInJmpTable                PROTO :DWORD
-CTALabelFromJmpEntry                PROTO :DWORD, :DWORD
+CTALabelFromJmpEntry                PROTO :DWORD, :DWORD, :DWORD
 CTAJmpLabelFromJmpEntry             PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
 CTAOutputLabelsOutsideRangeBefore   PROTO :DWORD, :DWORD
 CTAOutputLabelsOutsideRangeAfter    PROTO :DWORD, :DWORD
@@ -74,7 +74,10 @@ MENU_CTACMTCALLDEST1    EQU 11
 MENU_CTACMTCALLDEST2    EQU 12
 MENU_CTARANGELABELS1    EQU 13
 MENU_CTARANGELABELS2    EQU 14
-
+MENU_CTALBLUSEADDRESS1  EQU 15
+MENU_CTALBLUSEADDRESS2  EQU 16
+MENU_CTALBLUSELABEL1    EQU 17
+MENU_CTALBLUSELABEL2    EQU 18
 
 
 
@@ -90,6 +93,9 @@ szCTAOutsideRangeLabels DB "Outside range jump labels (before and after)",0
 szCTACmntOutsideRange   DB "Comment jumps/calls when outside range",0
 szCTACmntJmpDest        DB "Comment jumps with destination address",0
 szCTACmntCallDest       DB "Comment internal calls with destination address",0
+szCTALblsUseAddress     DB "Label name uses destination address",0
+szCTALblsUseLabel       DB "Label name prepended with 'LABEL_'",0
+
 
 
 szCopyToAsmInfo         DB 13,10         
@@ -147,12 +153,13 @@ szDestJmp               DB "=> ",0
 ;---------------------------
 szIni                   DB "ini",0
 CopyToAsmIni            DB MAX_PATH DUP (0)
-szFormatType            DB "FormatType",0
-szOutsideRangeLabels    DB "OutsideRangeLabels",0
-szCmntOutsideRange      DB "CmntOutsideRange",0      
-szCmntJumpDest          DB "CmntJumpDest",0
-szCmntCallDest          DB "CmntCallDest",0
-
+szIniFormatType         DB "FormatType",0
+szIniOutsideRangeLabels DB "OutsideRangeLabels",0
+szIniCmntOutsideRange   DB "CmntOutsideRange",0      
+szIniCmntJumpDest       DB "CmntJumpDest",0
+szIniCmntCallDest       DB "CmntCallDest",0
+szIniLblUseAddress      DB "LblUseAddress"
+szIniLblUseLabel        DB "LblUseLabel"
 
 ;---------------------------
 ; Buffers
@@ -189,6 +196,7 @@ szRightBracket          DB ")",0
 szPlus                  DB "+",0
 szMinus                 DB "-",0
 szDot                   DB ".",0
+szUnderscore            DB "_",0
 szOffsetLeftBracket     DB " (",0
 
 
@@ -200,6 +208,8 @@ g_OutsideRangeLabels    DD 1
 g_CmntOutsideRange      DD 1
 g_CmntJumpDest          DD 1
 g_CmntCallDest          DD 1
+g_LblUseAddress         DD 1
+g_LblUseLabel           DD 1
 
 
 ;---------------------------
