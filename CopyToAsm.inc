@@ -18,15 +18,28 @@ includelib masm32.lib
 CTALoadMenuIcon                     PROTO :DWORD, :DWORD
 
 DoCopyToAsm                         PROTO :DWORD
+
 CTABuildJmpTable                    PROTO :DWORD, :DWORD
 CTAClearJmpTable                    PROTO
 CTAAddressInJmpTable                PROTO :DWORD
+
+CTABuildCallTable                   PROTO :DWORD, :DWORD
+CTAClearCallTable                   PROTO
+CTAAddressInCallTable               PROTO :DWORD
+
+CTALabelFromCallEntry               PROTO :DWORD, :DWORD
 CTALabelFromJmpEntry                PROTO :DWORD, :DWORD, :DWORD
 CTAJmpLabelFromJmpEntry             PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
+
 CTAOutputLabelsOutsideRangeBefore   PROTO :DWORD, :DWORD
 CTAOutputLabelsOutsideRangeAfter    PROTO :DWORD, :DWORD
 CTARefViewLabelsOutsideRangeBefore  PROTO :DWORD, :DWORD
 CTARefViewLabelsOutsideRangeAfter   PROTO :DWORD, :DWORD
+
+CTAOutputCallLabelsOutsideRangeBefore   PROTO :DWORD, :DWORD
+CTAOutputCallLabelsOutsideRangeAfter    PROTO :DWORD, :DWORD
+CTARefViewCallLabelsOutsideRangeBefore  PROTO :DWORD, :DWORD
+CTARefViewCallLabelsOutsideRangeAfter   PROTO :DWORD, :DWORD
 
 CTAMnemonicToMasmHex                PROTO :DWORD, :DWORD, :DWORD
 CTAInternalCallToMasmHex            PROTO :DWORD, :DWORD, :DWORD
@@ -44,10 +57,13 @@ utoa_ex                             PROTO :DWORD, :DWORD
 
 
 JMPTABLE_ENTRY          STRUCT
-    dwAddress           dd 0
+    dwAddress           dd 0 ; jump destination address
 JMPTABLE_ENTRY          ENDS
 
-
+CALLTABLE_ENTRY         STRUCT
+    dwAddress           dd 0 ; call destination address
+    dwCallAddress       dd 0 ; instructions address
+CALLTABLE_ENTRY         ENDS
 
 .CONST
 CRLF                    TEXTEQU <13,10,0> ; carriage return and linefeed for strings that require them (GuiAddLogMessage for example) 
@@ -118,8 +134,9 @@ szDebuggingRequired     DB "CopyToAsm: you need to be debugging to use this opti
 szStartCopyToAsm        DB "CopyToAsm: Processing selection, please wait...",CRLF
 szFinishCopyToAsm       DB "CopyToAsm: finshed processing information, output is on the clipboard.",CRLF
 szFinishCopyToAsmRefView DB "CopyToAsm: finshed processing information, output is in the reference view tab.",CRLF
-szErrorMaxEntries       DB "CopyToAsm: error building jump table, maximum entries exceeded. Operation aborted.",CRLF
+szErrorMaxEntries       DB "CopyToAsm: error building call/jump table, maximum entries exceeded. Operation aborted.",CRLF
 szErrorAllocMemJmpTable DB "CopyToAsm: error allocating memory for jump table. Operation aborted.",CRLF
+szErrorAllocMemCallTable DB "CopyToAsm: error allocating memory for call table. Operation aborted.",CRLF
 szErrorClipboardData    DB "CopyToAsm: error allocating memory for clipboard. Operation aborted.",CRLF
 szLogFormatTypeNormal   DB "CopyToAsm: Normal format type specified.",CRLF
 szLogFormatTypeMasm     DB "CopyToAsm: Masm style format type specified.",CRLF
@@ -132,6 +149,9 @@ szCommentSelStart       DB 13,10,"; Start of selected range: ",0 ;CRLF
 szCommentSelFinish      DB "; Finish of selected range: ",0 ;13,10,13,10
 szCommentBeforeRange    DB "; Labels outside selected range (before)",CRLF
 szCommentAfterRange     DB 13,10,"; Labels outside selected range (after)",CRLF
+szCommentCallsBeforeRange    DB 13,10,"; Internal calls outside selected range (before)",CRLF
+szCommentCallsAfterRange     DB 13,10,"; Internal calls outside selected range (after)",CRLF
+
 szCommentOutsideRange   DB " ; outside range",0
 szCommentOutsideRange2  DB " - outside range",0
 szCmntStart             DB " ; 0x",0
@@ -146,7 +166,7 @@ szModBaseHex            DB " - ",0
 szModBase               DB " (base 0x",0
 szModuleSource          DB "; Source: ",0
 szDestJmp               DB "=> ",0
-
+szErrCallLabel          DB "Error_Call_Label:",0
 
 ;---------------------------
 ; Ini settings
@@ -170,6 +190,7 @@ szModuleNameStrip       DB MAX_PATH DUP (0)
 szValueString           DB 32 DUP (0)
 szLabelX                DB 32 DUP (0)
 szCALLFunction          DB MAX_PATH DUP (0)
+szCallLabelText         DB MAX_PATH DUP (0)
 szDisasmText            DB GUI_MAX_DISASSEMBLY_SIZE DUP (0)
 szFormattedDisasmText   DB GUI_MAX_DISASSEMBLY_SIZE DUP (0)
 
@@ -218,6 +239,11 @@ g_LblUseLabel           DD 1
 JMPTABLE_ENTRIES_MAX    DD 0
 JMPTABLE_ENTRIES_TOTAL  DD 0
 JMPTABLE                DD 0 ; pointer to array of JMPTABLE_ENTRIES
+
+
+CALLTABLE_ENTRIES_MAX   DD 0
+CALLTABLE_ENTRIES_TOTAL DD 0
+CALLTABLE               DD 0 ; pointer to array of CALLTABLE_ENTRIES
 
 
 ;---------------------------

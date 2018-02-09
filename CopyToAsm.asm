@@ -559,6 +559,15 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
         ret
     .ENDIF
 
+    ;----------------------------------
+    ; 2nd pass build call destination array
+    ;----------------------------------
+    Invoke CTABuildCallTable, dwStartAddress, dwFinishAddress
+    .IF eax == FALSE
+        ret
+    .ENDIF
+
+
     .IF dwOutput == 0 ; clipboard
         ;----------------------------------
         ; Alloc space for clipboard data
@@ -608,6 +617,7 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             ; Labels Before
             ;----------------------------------
             Invoke CTAOutputLabelsOutsideRangeBefore, dwStartAddress, ptrClipboardData
+            Invoke CTAOutputCallLabelsOutsideRangeBefore, dwStartAddress, ptrClipboardData
         .ENDIF
     
         ;----------------------------------
@@ -633,6 +643,8 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             ;----------------------------------        
             Invoke CTARefViewLabelsOutsideRangeBefore, dwStartAddress, dwCTALIndex
             mov dwCTALIndex, eax
+            Invoke CTARefViewCallLabelsOutsideRangeBefore, dwStartAddress, dwCTALIndex
+            mov dwCTALIndex, eax
         .ENDIF
 
     .ENDIF
@@ -645,9 +657,24 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
     mov dwCurrentAddress, eax
     .WHILE eax <= dwFinishAddress
         
+        ; Check instruction is in our jmp table as a destination for a jump, if so insert a label
         Invoke CTAAddressInJmpTable, dwCurrentAddress
         .IF eax != 0
             Invoke CTALabelFromJmpEntry, eax, dwCurrentAddress, Addr szLabelX
+            .IF dwOutput == 0 ; output to clipboard
+                Invoke szCatStr, ptrClipboardData, Addr szCRLF
+                Invoke szCatStr, ptrClipboardData, Addr szLabelX
+                Invoke szCatStr, ptrClipboardData, Addr szCRLF
+            .ELSE ; output to reference view
+                Invoke CTA_AddRowToRefView, dwCTALIndex, Addr szLabelX
+                inc dwCTALIndex
+            .ENDIF
+        .ENDIF
+        
+        ; Check instruction is in our call table as a destination for a call, if so insert a label
+        Invoke CTAAddressInCallTable, dwCurrentAddress
+        .IF eax != 0
+            Invoke CTALabelFromCallEntry, eax, Addr szLabelX
             .IF dwOutput == 0 ; output to clipboard
                 Invoke szCatStr, ptrClipboardData, Addr szCRLF
                 Invoke szCatStr, ptrClipboardData, Addr szLabelX
@@ -790,6 +817,7 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             ; Labels After
             ;----------------------------------
             Invoke CTAOutputLabelsOutsideRangeAfter, dwFinishAddress, ptrClipboardData
+            Invoke CTAOutputCallLabelsOutsideRangeAfter, dwFinishAddress, ptrClipboardData
         .ENDIF
         
     .ELSE
@@ -800,12 +828,15 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             ;----------------------------------    
             Invoke CTARefViewLabelsOutsideRangeAfter, dwFinishAddress, dwCTALIndex
             mov dwCTALIndex, eax
+            Invoke CTARefViewCallLabelsOutsideRangeAfter, dwFinishAddress, dwCTALIndex
+            mov dwCTALIndex, eax
         .ENDIF
     
     .ENDIF
 
 
     Invoke CTAClearJmpTable ; free jmp table
+    Invoke CTAClearCallTable ; free call table
 
 
     .IF dwOutput == 0 ; output to clipboard
@@ -912,22 +943,25 @@ CTABuildJmpTable PROC USES EBX dwStartAddress:DWORD, dwFinishAddress:DWORD
             mov JmpDestination, eax
            ; PrintDec JmpDestination
             
+            Invoke CTAAddressInJmpTable, JmpDestination
+            .IF eax == 0            
             
-            mov ebx, ptrJmpEntry
-            mov eax, JmpDestination
-            mov [ebx].JMPTABLE_ENTRY.dwAddress, eax
-            
-            inc nJmpEntry
-            inc JMPTABLE_ENTRIES_TOTAL
-            
-            mov eax, JMPTABLE_ENTRIES_TOTAL
-            .IF eax >= JMPTABLE_ENTRIES_MAX
-                Invoke GuiAddStatusBarMessage, Addr szErrorMaxEntries
-                mov eax, FALSE
-                ret
+                mov ebx, ptrJmpEntry
+                mov eax, JmpDestination
+                mov [ebx].JMPTABLE_ENTRY.dwAddress, eax
+                
+                inc nJmpEntry
+                inc JMPTABLE_ENTRIES_TOTAL
+                
+                mov eax, JMPTABLE_ENTRIES_TOTAL
+                .IF eax >= JMPTABLE_ENTRIES_MAX
+                    Invoke GuiAddStatusBarMessage, Addr szErrorMaxEntries
+                    mov eax, FALSE
+                    ret
+                .ENDIF
+                
+                add ptrJmpEntry, SIZEOF JMPTABLE_ENTRY
             .ENDIF
-            
-            add ptrJmpEntry, SIZEOF JMPTABLE_ENTRY
         .ENDIF
         
         Invoke GuiGetDisassembly, dwCurrentAddress, Addr szDisasmText
@@ -952,12 +986,129 @@ CTABuildJmpTable PROC USES EBX dwStartAddress:DWORD, dwFinishAddress:DWORD
     ;PrintDec dwJmpTableSize
     ;PrintDec JMPTABLE_ENTRIES_MAX
     ;PrintDec JMPTABLE_ENTRIES_TOTAL
-    ;DbgDump JMPTABLE, dwJmpTableSize
+    ;mov eax, JMPTABLE_ENTRIES_TOTAL
+    ;mov ebx, SIZEOF JMPTABLE_ENTRY
+    ;mul ebx
+    ;DbgDump JMPTABLE, eax
     
     mov eax, TRUE
     ret
 
 CTABuildJmpTable ENDP
+
+
+
+;-------------------------------------------------------------------------------------
+; 2nd pass of selection, build an array of call destinations
+; estimates size required based on selection size (bytes) / 4 (call xxxx (5) 4 bytes long)
+; = no of entries (max safe estimate) * size jmptable_entry struct
+; also roughly calcs the size of clipboard data required
+;-------------------------------------------------------------------------------------
+CTABuildCallTable PROC USES EBX dwStartAddress:DWORD, dwFinishAddress:DWORD
+    LOCAL bii:BASIC_INSTRUCTION_INFO ; basic 
+    LOCAL cbii:BASIC_INSTRUCTION_INFO ; call destination
+    LOCAL dwCallTableSize:DWORD
+    LOCAL dwCurrentAddress:DWORD
+    LOCAL CallDestination:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+
+    mov eax, dwFinishAddress
+    mov ebx, dwStartAddress
+    sub eax, ebx
+    .IF sdword ptr eax < 0
+        neg eax
+    .ENDIF
+    shr eax, 2 ; div by 4
+    mov CALLTABLE_ENTRIES_MAX, eax
+    mov ebx, SIZEOF CALLTABLE_ENTRY
+    mul ebx
+    mov dwCallTableSize, eax
+    
+    Invoke GlobalAlloc, GMEM_FIXED + GMEM_ZEROINIT, dwCallTableSize
+    .IF eax == NULL
+        Invoke GuiAddStatusBarMessage, Addr szErrorAllocMemCallTable
+        mov eax, FALSE
+        ret
+    .ENDIF
+    mov CALLTABLE, eax
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+
+    mov eax, dwStartAddress
+    mov dwCurrentAddress, eax
+
+
+    .WHILE eax <= dwFinishAddress
+        Invoke DbgDisasmFastAt, dwCurrentAddress, Addr bii
+        movzx eax, byte ptr bii.call_
+        movzx ebx, byte ptr bii.branch
+        
+        .IF eax == 1 && ebx == 1 ; we have call statement
+
+            mov eax, bii.address
+            mov CallDestination, eax
+            Invoke DbgDisasmFastAt, CallDestination, Addr cbii
+            
+            movzx eax, byte ptr cbii.branch
+            .IF eax == 1 ; external function call
+            .ELSE ; internal function call        
+                
+                Invoke CTAAddressInCallTable, CallDestination
+                .IF eax == 0
+                
+                    mov ebx, ptrCallEntry
+                    mov eax, CallDestination
+                    mov [ebx].CALLTABLE_ENTRY.dwAddress, eax
+                    mov eax, dwCurrentAddress
+                    mov [ebx].CALLTABLE_ENTRY.dwCallAddress, eax
+                    
+                    inc nCallEntry
+                    inc CALLTABLE_ENTRIES_TOTAL
+                    
+                    mov eax, CALLTABLE_ENTRIES_TOTAL
+                    .IF eax >= CALLTABLE_ENTRIES_MAX
+                        Invoke GuiAddStatusBarMessage, Addr szErrorMaxEntries
+                        mov eax, FALSE
+                        ret
+                    .ENDIF
+                    
+                    add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+                    
+                .ENDIF
+            .ENDIF
+        .ENDIF
+        
+        Invoke GuiGetDisassembly, dwCurrentAddress, Addr szDisasmText
+        Invoke szLen, Addr szDisasmText
+        add eax, 2 ; for CRLF pairs for each line
+        add CLIPDATASIZE, eax
+
+        mov eax, bii.size_ 
+        add dwCurrentAddress, eax
+        mov eax, dwCurrentAddress
+    .ENDW    
+    
+    mov eax, CALLTABLE_ENTRIES_TOTAL
+    mov ebx, 3 ; for extra label entries at start/finish for outside range labels
+    mul ebx
+    mov ebx, 64d
+    mul ebx
+    add CLIPDATASIZE, eax
+    
+    
+    ;PrintDec dwCallTableSize
+    ;PrintDec CALLTABLE_ENTRIES_MAX
+    ;PrintDec CALLTABLE_ENTRIES_TOTAL
+    ;mov eax, CALLTABLE_ENTRIES_TOTAL
+    ;mov ebx, SIZEOF CALLTABLE_ENTRY
+    ;mul ebx    
+    ;DbgDump CALLTABLE, eax
+    
+    mov eax, TRUE
+    ret
+
+CTABuildCallTable ENDP
 
 
 ;-------------------------------------------------------------------------------------
@@ -974,6 +1125,22 @@ CTAClearJmpTable PROC
     ret
 
 CTAClearJmpTable ENDP
+
+
+;-------------------------------------------------------------------------------------
+; Frees memory of the calltable and reset vars
+;-------------------------------------------------------------------------------------
+CTAClearCallTable PROC
+    
+    mov CALLTABLE_ENTRIES_MAX, 0
+    mov CALLTABLE_ENTRIES_TOTAL, 0
+    mov eax, CALLTABLE
+    .IF eax != 0
+        Invoke GlobalFree, eax
+    .ENDIF
+    ret
+
+CTAClearCallTable ENDP
 
 
 ;-------------------------------------------------------------------------------------
@@ -1014,6 +1181,41 @@ CTAAddressInJmpTable ENDP
 
 
 ;-------------------------------------------------------------------------------------
+; returns 0 if address is not in CALLTABLE, otherwise returns an 1-based index in eax
+; each address can be checked to see if it a destination for a call instruction
+; if it is then a label can be created an inserted before the instruction
+;-------------------------------------------------------------------------------------
+CTAAddressInCallTable PROC USES EBX dwAddress:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+    
+    .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
+        mov eax, 0
+        ret
+    .ENDIF
+    
+    mov eax, CALLTABLE
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+    mov eax, 0
+    .WHILE eax < CALLTABLE_ENTRIES_TOTAL
+        mov ebx, ptrCallEntry
+        mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
+        .IF eax == dwAddress
+            mov eax, nCallEntry
+            inc eax ; for 1 based index
+            ret
+        .ENDIF
+        add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+        inc nCallEntry
+        mov eax, nCallEntry
+    .ENDW
+    mov eax, 0
+    ret
+CTAAddressInCallTable ENDP
+
+
+;-------------------------------------------------------------------------------------
 ; Called before main loop output to clipboard labels outside range (before) selection
 ;-------------------------------------------------------------------------------------
 CTAOutputLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, pDataBuffer:DWORD
@@ -1042,8 +1244,9 @@ CTAOutputLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, pDataBuffe
                 Invoke szCatStr, pDataBuffer, Addr szCommentBeforeRange
                 mov bOutputComment, TRUE 
             .ENDIF
+            
             mov eax, nJmpEntry
-            inc eax ; for 1 based index            
+            inc eax ; for 1 based index
             Invoke CTALabelFromJmpEntry, eax, dwAddress, Addr szLabelX
             Invoke szCatStr, pDataBuffer, Addr szCRLF 
             Invoke szCatStr, pDataBuffer, Addr szLabelX
@@ -1065,6 +1268,56 @@ CTAOutputLabelsOutsideRangeBefore ENDP
 
 
 ;-------------------------------------------------------------------------------------
+; Called before main loop output to clipboard call labels outside range (before) selection
+;-------------------------------------------------------------------------------------
+CTAOutputCallLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, pDataBuffer:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+    LOCAL bOutputComment:DWORD
+    LOCAL dwAddress:DWORD
+    
+    .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
+        mov eax, 0
+        ret
+    .ENDIF    
+    
+    mov bOutputComment, FALSE
+    
+    mov eax, CALLTABLE
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+    mov eax, 0
+    .WHILE eax < CALLTABLE_ENTRIES_TOTAL
+        mov ebx, ptrCallEntry
+        mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
+        mov dwAddress, eax
+        .IF eax < dwStartAddress
+            .IF bOutputComment == FALSE
+                Invoke szCatStr, pDataBuffer, Addr szCommentCallsBeforeRange
+                mov bOutputComment, TRUE 
+            .ENDIF
+
+            Invoke CTALabelFromCallEntry, nCallEntry, Addr szLabelX
+            Invoke szCatStr, pDataBuffer, Addr szCRLF 
+            Invoke szCatStr, pDataBuffer, Addr szLabelX
+            .IF g_CmntJumpDest == 1
+                Invoke dw2hex, dwAddress, Addr szValueString
+                Invoke szCatStr, pDataBuffer, Addr szCmntStart
+                Invoke szCatStr, pDataBuffer, Addr szValueString
+            .ENDIF
+            Invoke szCatStr, pDataBuffer, Addr szCRLF           
+
+        .ENDIF
+        add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+        inc nCallEntry
+        mov eax, nCallEntry
+    .ENDW
+    mov eax, 0
+    ret
+CTAOutputCallLabelsOutsideRangeBefore ENDP
+
+
+;-------------------------------------------------------------------------------------
 ; Called before main loop output to refview labels outside range (before) selection
 ;-------------------------------------------------------------------------------------
 CTARefViewLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, dwCount:DWORD
@@ -1074,7 +1327,7 @@ CTARefViewLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, dwCount:D
     LOCAL dwCTALIndex:DWORD
     
     .IF JMPTABLE == 0 || JMPTABLE_ENTRIES_TOTAL == 0
-        mov eax, 0
+        mov eax, dwCount
         ret
     .ENDIF
     
@@ -1115,6 +1368,54 @@ CTARefViewLabelsOutsideRangeBefore ENDP
 
 
 ;-------------------------------------------------------------------------------------
+; Called before main loop output to refview call labels outside range (before) selection
+;-------------------------------------------------------------------------------------
+CTARefViewCallLabelsOutsideRangeBefore PROC USES EBX dwStartAddress:DWORD, dwCount:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+    LOCAL dwAddress:DWORD
+    LOCAL dwCTALIndex:DWORD
+    
+    .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
+        mov eax, dwCount
+        ret
+    .ENDIF    
+
+    mov eax, dwCount
+    mov dwCTALIndex, eax
+    
+    mov eax, CALLTABLE
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+    mov eax, 0
+    .WHILE eax < CALLTABLE_ENTRIES_TOTAL
+        mov ebx, ptrCallEntry
+        mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
+        mov dwAddress, eax
+        
+        .IF eax < dwStartAddress
+        
+            Invoke CTALabelFromCallEntry, nCallEntry, Addr szLabelX
+            Invoke szCopy, Addr szLabelX, Addr szFormattedDisasmText
+            .IF g_CmntJumpDest == 1
+                Invoke dw2hex, dwAddress, Addr szValueString
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szCmntStart
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szValueString
+            .ENDIF
+            Invoke CTA_AddRowToRefView, dwCTALIndex, Addr szFormattedDisasmText
+            inc dwCTALIndex       
+
+        .ENDIF
+        add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+        inc nCallEntry
+        mov eax, nCallEntry
+    .ENDW
+    mov eax, dwCTALIndex
+    ret
+CTARefViewCallLabelsOutsideRangeBefore ENDP
+
+
+;-------------------------------------------------------------------------------------
 ; Called after main loop output to clipboard labels outside range (after) selection
 ;-------------------------------------------------------------------------------------
 CTAOutputLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, pDataBuffer:DWORD
@@ -1143,6 +1444,7 @@ CTAOutputLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, pDataBuffe
                 Invoke szCatStr, pDataBuffer, Addr szCommentAfterRange
                 mov bOutputComment, TRUE 
             .ENDIF
+            
             mov eax, nJmpEntry
             inc eax ; for 1 based index            
             Invoke CTALabelFromJmpEntry, eax, dwAddress, Addr szLabelX
@@ -1166,6 +1468,55 @@ CTAOutputLabelsOutsideRangeAfter ENDP
 
 
 ;-------------------------------------------------------------------------------------
+; Called before main loop output to clipboard call labels outside range (after) selection
+;-------------------------------------------------------------------------------------
+CTAOutputCallLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, pDataBuffer:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+    LOCAL bOutputComment:DWORD
+    LOCAL dwAddress:DWORD
+    
+    .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
+        mov eax, 0
+        ret
+    .ENDIF    
+    
+    mov bOutputComment, FALSE
+    
+    mov eax, CALLTABLE
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+    mov eax, 0
+    .WHILE eax < CALLTABLE_ENTRIES_TOTAL
+        mov ebx, ptrCallEntry
+        mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
+        mov dwAddress, eax
+        .IF eax > dwFinishAddress
+            .IF bOutputComment == FALSE
+                Invoke szCatStr, pDataBuffer, Addr szCommentCallsAfterRange
+                mov bOutputComment, TRUE 
+            .ENDIF
+            Invoke CTALabelFromCallEntry, nCallEntry, Addr szLabelX
+            Invoke szCatStr, pDataBuffer, Addr szCRLF 
+            Invoke szCatStr, pDataBuffer, Addr szLabelX
+            .IF g_CmntJumpDest == 1
+                Invoke dw2hex, dwAddress, Addr szValueString
+                Invoke szCatStr, pDataBuffer, Addr szCmntStart
+                Invoke szCatStr, pDataBuffer, Addr szValueString
+            .ENDIF
+            Invoke szCatStr, pDataBuffer, Addr szCRLF           
+
+        .ENDIF
+        add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+        inc nCallEntry
+        mov eax, nCallEntry
+    .ENDW
+    mov eax, 0
+    ret
+CTAOutputCallLabelsOutsideRangeAfter ENDP
+
+
+;-------------------------------------------------------------------------------------
 ; Called before main loop output to refview labels outside range (after) selection
 ;-------------------------------------------------------------------------------------
 CTARefViewLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, dwCount:DWORD
@@ -1175,7 +1526,7 @@ CTARefViewLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, dwCount:D
     LOCAL dwCTALIndex:DWORD
     
     .IF JMPTABLE == 0 || JMPTABLE_ENTRIES_TOTAL == 0
-        mov eax, 0
+        mov eax, dwCount
         ret
     .ENDIF
     
@@ -1214,6 +1565,54 @@ CTARefViewLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, dwCount:D
 CTARefViewLabelsOutsideRangeAfter ENDP
 
 
+;-------------------------------------------------------------------------------------
+; Called before main loop output to refview call labels outside range (after) selection
+;-------------------------------------------------------------------------------------
+CTARefViewCallLabelsOutsideRangeAfter PROC USES EBX dwFinishAddress:DWORD, dwCount:DWORD
+    LOCAL nCallEntry:DWORD
+    LOCAL ptrCallEntry:DWORD
+    LOCAL dwAddress:DWORD
+    LOCAL dwCTALIndex:DWORD
+    
+    .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
+        mov eax, dwCount
+        ret
+    .ENDIF    
+
+    mov eax, dwCount
+    mov dwCTALIndex, eax
+
+    mov eax, CALLTABLE
+    mov ptrCallEntry, eax
+    mov nCallEntry, 0
+    mov eax, 0
+    .WHILE eax < CALLTABLE_ENTRIES_TOTAL
+        mov ebx, ptrCallEntry
+        mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
+        mov dwAddress, eax
+        
+        .IF eax > dwFinishAddress
+        
+            Invoke CTALabelFromCallEntry, nCallEntry, Addr szLabelX
+            Invoke szCopy, Addr szLabelX, Addr szFormattedDisasmText
+            .IF g_CmntJumpDest == 1
+                Invoke dw2hex, dwAddress, Addr szValueString
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szCmntStart
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szValueString
+            .ENDIF
+            Invoke CTA_AddRowToRefView, dwCTALIndex, Addr szFormattedDisasmText
+            inc dwCTALIndex       
+
+        .ENDIF
+        add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
+        inc nCallEntry
+        mov eax, nCallEntry
+    .ENDW
+    mov eax, dwCTALIndex
+    ret
+CTARefViewCallLabelsOutsideRangeAfter ENDP
+
+
 
 ;-------------------------------------------------------------------------------------
 ; Creates string "LABEL_X:"+(CRLF) from dwJmpEntry number X
@@ -1242,6 +1641,38 @@ CTALabelFromJmpEntry PROC dwJmpEntry:DWORD, dwAddress:DWORD, lpszLabel:DWORD
     .ENDIF
     ret
 CTALabelFromJmpEntry ENDP
+
+
+;-------------------------------------------------------------------------------------
+; Creates string "LABEL_X:"+(CRLF) from dwCallEntry number X
+;-------------------------------------------------------------------------------------
+CTALabelFromCallEntry PROC USES EBX dwCallEntry:DWORD, lpszLabel:DWORD
+    LOCAL ptrCallEntry:DWORD
+    LOCAL dwCallAddress:DWORD
+    
+    mov ebx, SIZEOF CALLTABLE_ENTRY
+    mov eax, dwCallEntry
+    .IF eax > CALLTABLE_ENTRIES_TOTAL
+        Invoke szCopy, Addr szErrCallLabel, lpszLabel
+        ret
+    .ENDIF
+    mul ebx
+    mov ebx, CALLTABLE
+    add eax, ebx
+    mov ptrCallEntry, eax
+    mov ebx, eax
+    mov eax, [ebx].CALLTABLE_ENTRY.dwCallAddress
+    mov dwCallAddress, eax
+    
+    Invoke GuiGetDisassembly, dwCallAddress, Addr szCallLabelText
+    
+    Invoke Strip_x64dbg_calls, Addr szCallLabelText, Addr szCALLFunction
+    Invoke szCatStr, Addr szCALLFunction, Addr szColon
+    Invoke szCopy, Addr szCALLFunction, lpszLabel
+    ret
+
+CTALabelFromCallEntry ENDP
+
 
 
 ;-------------------------------------------------------------------------------------

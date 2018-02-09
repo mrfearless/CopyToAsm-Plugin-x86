@@ -1,6 +1,6 @@
 # CopyToAsm Plugin (x86) - A Plugin For x64dbg
 
-![](https://github.com/mrfearless/CopyToAsm-Plugin-x86/blob/master/images/copytoasmlogo.png) [Current version: 1.0.0.2 - Last updated: 07/02/2018](https://github.com/mrfearless/CopyToAsm-Plugin-x86/releases/latest) For the x64 version of this plugin, visit [here](https://github.com/mrfearless/CopyToAsm-Plugin-x64)
+![](https://github.com/mrfearless/CopyToAsm-Plugin-x86/blob/master/images/copytoasmlogo.png) [Current version: 1.0.0.3 - Last updated: 09/02/2018](https://github.com/mrfearless/CopyToAsm-Plugin-x86/releases/latest) For the x64 version of this plugin, visit [here](https://github.com/mrfearless/CopyToAsm-Plugin-x64)
 
 ## Overview
 
