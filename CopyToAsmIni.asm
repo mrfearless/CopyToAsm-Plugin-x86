@@ -18,6 +18,18 @@ IniGetLblUseAddress             PROTO
 IniSetLblUseAddress             PROTO :DWORD
 IniGetLblUseLabel               PROTO
 IniSetLblUseLabel               PROTO :DWORD
+IniGetLblUsex64dbgLabels        PROTO
+IniSetLblUsex64dbgLabels        PROTO :DWORD
+
+.DATA
+szIniFormatType                 DB "FormatType",0
+szIniOutsideRangeLabels         DB "OutsideRangeLabels",0
+szIniCmntOutsideRange           DB "CmntOutsideRange",0      
+szIniCmntJumpDest               DB "CmntJumpDest",0
+szIniCmntCallDest               DB "CmntCallDest",0
+szIniLblUseAddress              DB "LblUseAddress"
+szIniLblUseLabel                DB "LblUseLabel"
+szIniLblUsex64dbgLabels         DB "LblUsex64dbgLabels"
 
 
 .CODE
@@ -180,7 +192,26 @@ IniSetLblUseLabel PROC dwValue:DWORD
 IniSetLblUseLabel ENDP
 
 
+;**************************************************************************
+;
+;**************************************************************************
+IniGetLblUsex64dbgLabels PROC
+    Invoke GetPrivateProfileInt, Addr szCopyToAsm, Addr szIniLblUsex64dbgLabels, 1, Addr CopyToAsmIni
+    ret
+IniGetLblUsex64dbgLabels ENDP
 
+
+;**************************************************************************
+;
+;**************************************************************************
+IniSetLblUsex64dbgLabels PROC dwValue:DWORD
+    .IF dwValue == 0
+        Invoke WritePrivateProfileString, Addr szCopyToAsm, Addr szIniLblUsex64dbgLabels, Addr szZero, Addr CopyToAsmIni
+    .ELSE
+        Invoke WritePrivateProfileString, Addr szCopyToAsm, Addr szIniLblUsex64dbgLabels, Addr szOne, Addr CopyToAsmIni
+    .ENDIF
+    ret
+IniSetLblUsex64dbgLabels ENDP
 
 
 

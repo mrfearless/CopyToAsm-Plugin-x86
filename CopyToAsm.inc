@@ -50,6 +50,9 @@ Strip_x64dbg_anglebrackets          PROTO :DWORD, :DWORD
 Strip_x64dbg_modulename             PROTO :DWORD, :DWORD
 ConvertHexValues                    PROTO :DWORD, :DWORD, :DWORD
 
+cbCTAC                              PROTO C :DWORD, :DWORD
+cbCTAR                              PROTO C :DWORD, :DWORD
+
 
 atou_ex                             PROTO :DWORD
 utoa_ex                             PROTO :DWORD, :DWORD
@@ -93,7 +96,8 @@ MENU_CTALBLUSEADDRESS1  EQU 15
 MENU_CTALBLUSEADDRESS2  EQU 16
 MENU_CTALBLUSELABEL1    EQU 17
 MENU_CTALBLUSELABEL2    EQU 18
-
+MENU_COPYTOASM_OPTIONS1 EQU 19
+MENU_COPYTOASM_OPTIONS2 EQU 20
 
 
 .DATA
@@ -124,6 +128,7 @@ szCopyToAsmInfo         DB 13,10
                         DB " - Indicates if jump destinations are outside selection range.",13,10
                         DB " - Code comments to indicate start/end and outside range.",13,10
                         DB " - Format hex values as C style (0x) or Masm style.",13,10
+                        DB " - Commands: CopyToAsmClip (ctac) or CopyToAsmRef (ctar).",13,10
                         DB 13,10,0
                         ;DB " - Removes '0x' from values and appends 'h' for masm style hex values.",13,10
 
@@ -167,19 +172,15 @@ szModBase               DB " (base 0x",0
 szModuleSource          DB "; Source: ",0
 szDestJmp               DB "=> ",0
 szErrCallLabel          DB "Error_Call_Label:",0
+szPROC                  DB " PROC",0
+szENDPROC               DB " ENDP",0
 
 ;---------------------------
 ; Ini settings
 ;---------------------------
 szIni                   DB "ini",0
 CopyToAsmIni            DB MAX_PATH DUP (0)
-szIniFormatType         DB "FormatType",0
-szIniOutsideRangeLabels DB "OutsideRangeLabels",0
-szIniCmntOutsideRange   DB "CmntOutsideRange",0      
-szIniCmntJumpDest       DB "CmntJumpDest",0
-szIniCmntCallDest       DB "CmntCallDest",0
-szIniLblUseAddress      DB "LblUseAddress"
-szIniLblUseLabel        DB "LblUseLabel"
+
 
 ;---------------------------
 ; Buffers
@@ -191,6 +192,8 @@ szValueString           DB 32 DUP (0)
 szLabelX                DB 32 DUP (0)
 szCALLFunction          DB MAX_PATH DUP (0)
 szCallLabelText         DB MAX_PATH DUP (0)
+szLabelText             DB MAX_LABEL_SIZE DUP (0)
+szLastLabelText         DB MAX_LABEL_SIZE DUP (0)
 szDisasmText            DB GUI_MAX_DISASSEMBLY_SIZE DUP (0)
 szFormattedDisasmText   DB GUI_MAX_DISASSEMBLY_SIZE DUP (0)
 
@@ -220,6 +223,13 @@ szDot                   DB ".",0
 szUnderscore            DB "_",0
 szOffsetLeftBracket     DB " (",0
 
+;---------------------------
+; Registered Commands
+;---------------------------
+szCTACLongCommand       DB "CopyToAsmClip",0
+szCTARLongCommand       DB "CopyToAsmRef",0
+szCTACCommand           DB "ctac",0
+szCTARCommand           DB "ctar",0
 
 ;---------------------------
 ; Global Vars
@@ -231,7 +241,7 @@ g_CmntJumpDest          DD 1
 g_CmntCallDest          DD 1
 g_LblUseAddress         DD 1
 g_LblUseLabel           DD 1
-
+g_LblUsex64dbgLabels    DD 1
 
 ;---------------------------
 ; Jump Table

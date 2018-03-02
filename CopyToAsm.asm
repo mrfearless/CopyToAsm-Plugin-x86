@@ -12,14 +12,14 @@
 option casemap:none
 
 ;DEBUG32 EQU 1
-
-IFDEF DEBUG32
-    PRESERVEXMMREGS equ 1
-    includelib M:\Masm32\lib\Debug32.lib
-    DBG32LIB equ 1
-    DEBUGEXE textequ <'M:\Masm32\DbgWin.exe'>
-    include M:\Masm32\include\debug32.inc
-ENDIF
+;
+;IFDEF DEBUG32
+;    PRESERVEXMMREGS equ 1
+;    includelib M:\Masm32\lib\Debug32.lib
+;    DBG32LIB equ 1
+;    DEBUGEXE textequ <'M:\Masm32\DbgWin.exe'>
+;    include M:\Masm32\include\debug32.inc
+;ENDIF
 
 Include x64dbgpluginsdk.inc               ; Main x64dbg Plugin SDK for your program, and prototypes for the main exports 
 
@@ -29,6 +29,7 @@ includelib x64dbgpluginsdk_x86.lib
 Include CopyToAsm.inc ; plugin's include file
 
 Include CopyToAsmIni.asm
+Include CopyToAsmOptions.asm
 
 ;=====================================================================================
 
@@ -173,39 +174,45 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     Invoke _plugin_menuaddentry, hMenu, MENU_COPYTOASM_CLPB1, Addr szCopyToAsmMenuClip    
     Invoke _plugin_menuaddentry, hMenu, MENU_COPYTOASM_REFV1, Addr szCopyToAsmMenuRefv
     Invoke _plugin_menuaddseparator, hMenu
-    Invoke _plugin_menuadd, hMenu, Addr szCTACommentOptions
-    mov hMenuOptions, eax    
-    ;Invoke _plugin_menuaddentry, hMenu, MENU_COPYTOASM_FMT1, Addr szCopyToAsmFormat
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTARANGELABELS1, Addr szCTAOutsideRangeLabels
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTRANGE1, Addr szCTACmntOutsideRange
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTJMPDEST1, Addr szCTACmntJmpDest
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTCALLDEST1, Addr szCTACmntCallDest
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS1, Addr szCTALblsUseAddress
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL1, Addr szCTALblsUseLabel
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT1, Addr szCopyToAsmFormat    
-    Invoke CTALoadMenuIcon, IMG_MENU_OPTIONS, Addr hIconDataOptions
-    Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
+    Invoke _plugin_menuaddentry, hMenu, MENU_COPYTOASM_OPTIONS1, Addr szCTACommentOptions
+    
+;    Invoke _plugin_menuadd, hMenu, Addr szCTACommentOptions
+;    mov hMenuOptions, eax    
+;    ;Invoke _plugin_menuaddentry, hMenu, MENU_COPYTOASM_FMT1, Addr szCopyToAsmFormat
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTARANGELABELS1, Addr szCTAOutsideRangeLabels
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTRANGE1, Addr szCTACmntOutsideRange
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTJMPDEST1, Addr szCTACmntJmpDest
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTCALLDEST1, Addr szCTACmntCallDest
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS1, Addr szCTALblsUseAddress
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL1, Addr szCTALblsUseLabel
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT1, Addr szCopyToAsmFormat    
+;    Invoke CTALoadMenuIcon, IMG_MENU_OPTIONS, Addr hIconDataOptions
+;    Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
 
     Invoke _plugin_menuaddentry, hMenuDisasm, MENU_COPYTOASM_CLPB2, Addr szCopyToAsmMenuClip
     Invoke _plugin_menuaddentry, hMenuDisasm, MENU_COPYTOASM_REFV2, Addr szCopyToAsmMenuRefv
     Invoke _plugin_menuaddseparator, hMenuDisasm
-    Invoke _plugin_menuadd, hMenuDisasm, Addr szCTACommentOptions
-    mov hMenuOptions, eax
-    ;Invoke _plugin_menuaddentry, hMenuDisasm, MENU_COPYTOASM_FMT2, Addr szCopyToAsmFormat
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTARANGELABELS2, Addr szCTAOutsideRangeLabels
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTRANGE2, Addr szCTACmntOutsideRange
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTJMPDEST2, Addr szCTACmntJmpDest
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTCALLDEST2, Addr szCTACmntCallDest
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS2, Addr szCTALblsUseAddress
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL2, Addr szCTALblsUseLabel
-    Invoke _plugin_menuaddseparator, hMenuOptions
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT2, Addr szCopyToAsmFormat
-    Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
+    Invoke _plugin_menuaddentry, hMenuDisasm, MENU_COPYTOASM_OPTIONS2, Addr szCTACommentOptions
+
+;    Invoke _plugin_menuadd, hMenuDisasm, Addr szCTACommentOptions
+;    mov hMenuOptions, eax
+;    ;Invoke _plugin_menuaddentry, hMenuDisasm, MENU_COPYTOASM_FMT2, Addr szCopyToAsmFormat
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTARANGELABELS2, Addr szCTAOutsideRangeLabels
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTRANGE2, Addr szCTACmntOutsideRange
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTJMPDEST2, Addr szCTACmntJmpDest
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTCALLDEST2, Addr szCTACmntCallDest
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS2, Addr szCTALblsUseAddress
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL2, Addr szCTALblsUseLabel
+;    Invoke _plugin_menuaddseparator, hMenuOptions
+;    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT2, Addr szCopyToAsmFormat
+;    Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
+
+
 
     Invoke CTALoadMenuIcon, IMG_COPYTOASM_MAIN, Addr hIconData
     .IF eax == TRUE
@@ -225,80 +232,91 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_REFV2, Addr hIconData
     .ENDIF
 
-    Invoke CTALoadMenuIcon, IMG_MENU_CHECK, Addr hImgCheck
-    Invoke CTALoadMenuIcon, IMG_MENU_NOCHECK, Addr hImgNoCheck
+    Invoke CTALoadMenuIcon, IMG_MENU_OPTIONS, Addr hIconDataOptions
+    .IF eax == TRUE
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_OPTIONS1, Addr hIconDataOptions
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_OPTIONS2, Addr hIconDataOptions
+    .ENDIF
+
+;    Invoke CTALoadMenuIcon, IMG_MENU_CHECK, Addr hImgCheck
+;    Invoke CTALoadMenuIcon, IMG_MENU_NOCHECK, Addr hImgNoCheck
     
     Invoke IniGetOutsideRangeLabels
     mov g_OutsideRangeLabels, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgNoCheck
-    .ENDIF
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgNoCheck
+;    .ENDIF
     
     Invoke IniGetCmntOutsideRange
     mov g_CmntOutsideRange, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgNoCheck
-    .ENDIF
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgNoCheck
+;    .ENDIF
     
     Invoke IniGetCmntJumpDest
     mov g_CmntJumpDest, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgNoCheck
-    .ENDIF
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgNoCheck
+;    .ENDIF
     
     Invoke IniGetCmntCallDest
     mov g_CmntCallDest, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgNoCheck
-    .ENDIF    
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgNoCheck
+;    .ENDIF    
 
     Invoke IniGetLblUseAddress
     mov g_LblUseAddress, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgNoCheck
-    .ENDIF   
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgNoCheck
+;    .ENDIF   
 
     Invoke IniGetLblUseLabel
     mov g_LblUseLabel, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgNoCheck
-    .ENDIF       
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgNoCheck
+;    .ENDIF       
     
     Invoke IniGetFormatType
     mov g_FormatType, eax
-    .IF eax == 1
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgCheck
-    .ELSE
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgNoCheck
-        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgNoCheck
-    .ENDIF   
+;    .IF eax == 1
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgCheck
+;    .ELSE
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgNoCheck
+;        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgNoCheck
+;    .ENDIF   
+    Invoke IniGetLblUsex64dbgLabels
+    mov g_LblUsex64dbgLabels, eax
 
-
+    Invoke _plugin_registercommand, pluginHandle, Addr szCTACLongCommand, Addr cbCTAC, TRUE
+    Invoke _plugin_registercommand, pluginHandle, Addr szCTACCommand, Addr cbCTAC, TRUE
+    Invoke _plugin_registercommand, pluginHandle, Addr szCTARLongCommand, Addr cbCTAR, TRUE
+    Invoke _plugin_registercommand, pluginHandle, Addr szCTARCommand, Addr cbCTAR, TRUE
 
     Invoke GuiAddLogMessage, Addr szCopyToAsmInfo
     Invoke GuiGetWindowHandle
@@ -445,6 +463,10 @@ CBMENUENTRY PROC C PUBLIC USES EBX cbType:DWORD, cbInfo:DWORD
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgCheck
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgCheck
         .ENDIF
+
+    .ELSEIF eax == MENU_COPYTOASM_OPTIONS1 || eax == MENU_COPYTOASM_OPTIONS2 
+        
+        Invoke DialogBoxParam, hInstance, IDD_OPTIONSDLG, hwndDlg, Addr OptionsDlgProc, NULL
 
     .ENDIF
     
@@ -647,13 +669,33 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
 
     .ENDIF
 
-
+    Invoke szCopy, Addr szNull, Addr szLastLabelText
     ;----------------------------------
     ; Start main loop processing selection
     ;----------------------------------
     mov eax, dwStartAddress
     mov dwCurrentAddress, eax
     .WHILE eax <= dwFinishAddress
+        
+        ; Use x64dbg label if present?
+        .IF g_LblUsex64dbgLabels == TRUE
+            Invoke DbgGetLabelAt, dwCurrentAddress, SEG_DEFAULT, Addr szLabelText
+            .IF eax == TRUE
+                Invoke szLen, Addr szLabelText
+                .IF eax != 0
+                    ;PrintString szLabelText
+                    Invoke szCatStr, Addr szLabelText, Addr szColon
+                    .IF dwOutput == 0 ; output to clipboard
+                        Invoke szCatStr, ptrClipboardData, Addr szCRLF
+                        Invoke szCatStr, ptrClipboardData, Addr szLabelText
+                        Invoke szCatStr, ptrClipboardData, Addr szCRLF
+                    .ELSE ; output to reference view
+                        Invoke CTA_AddRowToRefView, dwCTALIndex, Addr szLabelText
+                        inc dwCTALIndex
+                    .ENDIF
+                .ENDIF
+            .ENDIF
+        .ENDIF
         
         ; Check instruction is in our jmp table as a destination for a jump, if so insert a label
         Invoke CTAAddressInJmpTable, dwCurrentAddress
@@ -2198,6 +2240,43 @@ CTA_AddRowToRefView PROC dwCount:DWORD, lpszRowText:DWORD
     mov eax, TRUE
     ret
 CTA_AddRowToRefView ENDP
+
+
+
+;=====================================================================================
+; CopyToAsm Clipboard Command: 'CopyToAsmClip' or 'ctac'
+;-------------------------------------------------------------------------------------
+cbCTAC PROC C USES EBX argc:DWORD, argv:DWORD
+
+    Invoke DbgIsDebugging
+    .IF eax == FALSE
+        Invoke GuiAddStatusBarMessage, Addr szDebuggingRequired
+        Invoke GuiAddLogMessage, Addr szDebuggingRequired
+    .ELSE
+        Invoke DoCopyToAsm, 0 ; clipboard
+    .ENDIF
+
+    mov eax, TRUE
+    ret
+cbCTAC ENDP
+
+
+;=====================================================================================
+; CopyToAsm RefVieew Command: 'CopyToAsmRef' or 'ctar'
+;-------------------------------------------------------------------------------------
+cbCTAR PROC C USES EBX argc:DWORD, argv:DWORD
+
+    Invoke DbgIsDebugging
+    .IF eax == FALSE
+        Invoke GuiAddStatusBarMessage, Addr szDebuggingRequired
+        Invoke GuiAddLogMessage, Addr szDebuggingRequired
+    .ELSE
+        Invoke DoCopyToAsm, 1 ; refview
+    .ENDIF
+
+    mov eax, TRUE
+    ret
+cbCTAR ENDP
 
 
 
