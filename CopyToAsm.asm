@@ -1681,6 +1681,7 @@ CTALabelFromCallEntry PROC USES EBX dwCallEntry:DWORD, lpszLabel:DWORD
     
     mov ebx, SIZEOF CALLTABLE_ENTRY
     mov eax, dwCallEntry
+    dec eax ; adjust for 1 based index
     .IF eax > CALLTABLE_ENTRIES_TOTAL
         Invoke szCopy, Addr szErrCallLabel, lpszLabel
         ret
