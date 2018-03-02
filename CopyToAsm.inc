@@ -41,9 +41,6 @@ CTAOutputCallLabelsOutsideRangeAfter    PROTO :DWORD, :DWORD
 CTARefViewCallLabelsOutsideRangeBefore  PROTO :DWORD, :DWORD
 CTARefViewCallLabelsOutsideRangeAfter   PROTO :DWORD, :DWORD
 
-CTAMnemonicToMasmHex                PROTO :DWORD, :DWORD, :DWORD
-CTAInternalCallToMasmHex            PROTO :DWORD, :DWORD, :DWORD
-
 CTA_AddColumnsToRefView             PROTO :DWORD, :DWORD
 CTA_AddRowToRefView                 PROTO :DWORD, :DWORD
 
@@ -51,6 +48,8 @@ Strip_x64dbg_calls                  PROTO :DWORD, :DWORD
 Strip_x64dbg_segments               PROTO :DWORD, :DWORD
 Strip_x64dbg_anglebrackets          PROTO :DWORD, :DWORD
 Strip_x64dbg_modulename             PROTO :DWORD, :DWORD
+ConvertHexValues                    PROTO :DWORD, :DWORD, :DWORD
+
 
 atou_ex                             PROTO :DWORD
 utoa_ex                             PROTO :DWORD, :DWORD
@@ -103,7 +102,7 @@ szCopyToAsmLoaded       DB "CopyToAsm loaded.",CRLF
 szCopyToAsmUnloaded     DB "CopyToAsm unloaded.",CRLF
 szCopyToAsmMenuClip     DB "Selected range to clipboard",0
 szCopyToAsmMenuRefv     DB "Selected range to reference view",0
-szCopyToAsmFormat       DB "Masm format (uncheck for normal)",0
+szCopyToAsmFormat       DB "Hex values in Masm style (uncheck for C style)",0
 szCTACommentOptions     DB "Options",0
 szCTAOutsideRangeLabels DB "Outside range jump labels (before and after)",0
 szCTACmntOutsideRange   DB "Comment jumps/calls when outside range",0
@@ -124,6 +123,7 @@ szCopyToAsmInfo         DB 13,10
                         DB " - Adjusts jump instructions to point to added labels.",13,10
                         DB " - Indicates if jump destinations are outside selection range.",13,10
                         DB " - Code comments to indicate start/end and outside range.",13,10
+                        DB " - Format hex values as C style (0x) or Masm style.",13,10
                         DB 13,10,0
                         ;DB " - Removes '0x' from values and appends 'h' for masm style hex values.",13,10
 

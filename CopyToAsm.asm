@@ -12,14 +12,14 @@
 option casemap:none
 
 ;DEBUG32 EQU 1
-;
-;IFDEF DEBUG32
-;    PRESERVEXMMREGS equ 1
-;    includelib M:\Masm32\lib\Debug32.lib
-;    DBG32LIB equ 1
-;    DEBUGEXE textequ <'M:\Masm32\DbgWin.exe'>
-;    include M:\Masm32\include\debug32.inc
-;ENDIF
+
+IFDEF DEBUG32
+    PRESERVEXMMREGS equ 1
+    includelib M:\Masm32\lib\Debug32.lib
+    DBG32LIB equ 1
+    DEBUGEXE textequ <'M:\Masm32\DbgWin.exe'>
+    include M:\Masm32\include\debug32.inc
+ENDIF
 
 Include x64dbgpluginsdk.inc               ; Main x64dbg Plugin SDK for your program, and prototypes for the main exports 
 
@@ -183,7 +183,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTACMTCALLDEST1, Addr szCTACmntCallDest
     Invoke _plugin_menuaddseparator, hMenuOptions
     Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS1, Addr szCTALblsUseAddress
-    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL1, Addr szCTALblsUseLabel    
+    Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL1, Addr szCTALblsUseLabel
+    Invoke _plugin_menuaddseparator, hMenuOptions
+    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT1, Addr szCopyToAsmFormat    
     Invoke CTALoadMenuIcon, IMG_MENU_OPTIONS, Addr hIconDataOptions
     Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
 
@@ -201,6 +203,8 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     Invoke _plugin_menuaddseparator, hMenuOptions
     Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSEADDRESS2, Addr szCTALblsUseAddress
     Invoke _plugin_menuaddentry, hMenuOptions, MENU_CTALBLUSELABEL2, Addr szCTALblsUseLabel
+    Invoke _plugin_menuaddseparator, hMenuOptions
+    Invoke _plugin_menuaddentry, hMenuOptions, MENU_COPYTOASM_FMT2, Addr szCopyToAsmFormat
     Invoke _plugin_menuseticon, hMenuOptions, Addr hIconDataOptions
 
     Invoke CTALoadMenuIcon, IMG_COPYTOASM_MAIN, Addr hIconData
@@ -229,11 +233,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTARANGELABELS2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF
     
     Invoke IniGetCmntOutsideRange
@@ -241,11 +243,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTRANGE2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF
     
     Invoke IniGetCmntJumpDest
@@ -253,11 +253,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTJMPDEST2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF
     
     Invoke IniGetCmntCallDest
@@ -265,11 +263,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTACMTCALLDEST2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF    
 
     Invoke IniGetLblUseAddress
@@ -277,11 +273,9 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSEADDRESS2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF   
 
     Invoke IniGetLblUseLabel
@@ -289,14 +283,20 @@ plugsetup PROC C PUBLIC USES EBX setupStruct:DWORD
     .IF eax == 1
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
     .ELSE
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL1, Addr hImgNoCheck
         Invoke _plugin_menuentryseticon, pluginHandle, MENU_CTALBLUSELABEL2, Addr hImgNoCheck
-        ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
     .ENDIF       
     
-
+    Invoke IniGetFormatType
+    mov g_FormatType, eax
+    .IF eax == 1
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgCheck
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgCheck
+    .ELSE
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgNoCheck
+        Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgNoCheck
+    .ENDIF   
 
 
 
@@ -349,13 +349,11 @@ CBMENUENTRY PROC C PUBLIC USES EBX cbType:DWORD, cbInfo:DWORD
             Invoke IniSetFormatType, 0
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgNoCheck
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgNoCheck
-            ;Invoke GuiAddLogMessage, Addr szLogFormatTypeNormal
         .ELSE
             mov g_FormatType, 1
             Invoke IniSetFormatType, 1
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT1, Addr hImgCheck
             Invoke _plugin_menuentryseticon, pluginHandle, MENU_COPYTOASM_FMT2, Addr hImgCheck
-            ;Invoke GuiAddLogMessage, Addr szLogFormatTypeMasm
         .ENDIF
 
     .ELSEIF eax == MENU_CTARANGELABELS1 || eax == MENU_CTARANGELABELS2
@@ -757,27 +755,16 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
 
         .ELSE ; normal non jump or call instructions
             Invoke GuiGetDisassembly, dwCurrentAddress, Addr szDisasmText
+            ;PrintString szDisasmText
             Invoke Strip_x64dbg_segments, Addr szDisasmText, Addr szFormattedDisasmText
             Invoke Strip_x64dbg_anglebrackets, Addr szFormattedDisasmText, Addr szDisasmText
             Invoke Strip_x64dbg_modulename, Addr szDisasmText, Addr szFormattedDisasmText
-            ;Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText
-            
-;            mov eax, bii.type_
-;            .IF eax == TYPE_VALUE
-;                .IF g_FormatType == 1
-;                    Invoke szCatStr, Addr szFormattedDisasmText, Addr szMasmHexH
-;                .ENDIF
-;                
-;            .ELSEIF eax == TYPE_MEMORY || eax == (TYPE_VALUE or TYPE_MEMORY)
-;                .IF g_FormatType == 1
-;                    Invoke szCopy, Addr szFormattedDisasmText, Addr szDisasmText 
-;                    Invoke CTAMnemonicToMasmHex, Addr szDisasmText, Addr szFormattedDisasmText, Addr bii
-;                .ELSE
-;                    Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText
-;                .ENDIF
-;            .ENDIF
+
 
         .ENDIF
+        
+        Invoke ConvertHexValues, Addr szFormattedDisasmText, Addr szDisasmText, g_FormatType
+        Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText
         
         .IF dwOutput == 0 ; output to clipboard
             Invoke szCatStr, ptrClipboardData, Addr szFormattedDisasmText
@@ -1740,74 +1727,7 @@ CTAJmpLabelFromJmpEntry PROC USES EDI ESI dwJmpEntry:DWORD, dwAddress:DWORD, bOu
 CTAJmpLabelFromJmpEntry ENDP
 
 
-;-------------------------------------------------------------------------------------
-; Adjust mnemonic to remove 0x and add h for masm style hex values
-;-------------------------------------------------------------------------------------
-CTAMnemonicToMasmHex PROC USES EBX EDI ESI lpszDisasmText:DWORD, lpszFormattedDisasmText:DWORD, bii:DWORD
-    LOCAL szMnemToReplace[MAX_MNEMONIC_SIZE]:BYTE
-    LOCAL szMnemToReplaceWith[MAX_MNEMONIC_SIZE]:BYTE
-    LOCAL szTemp[MAX_MNEMONIC_SIZE]:BYTE
-    LOCAL pMnemonic:DWORD
-    
-    mov ebx, bii
-    lea eax, [ebx].BASIC_INSTRUCTION_INFO.memory.mnemonic
-    mov pMnemonic, eax
-    
-    ; remove any *1- or *1+
-    Invoke InString, 1, pMnemonic, Addr szMnemStarOnePlus
-    .IF sdword ptr eax > 0
-        Invoke szRep, pMnemonic, Addr szMnemToReplace, Addr szMnemStarOnePlus, Addr szPlus
-    .ELSE
-        Invoke InString, 1, pMnemonic, Addr szMnemStarOneMinus
-        .IF sdword ptr eax > 0
-            Invoke szRep, pMnemonic, Addr szMnemToReplace, Addr szMnemStarOneMinus, Addr szMinus
-        .ELSE
-            Invoke szCopy, pMnemonic, Addr szMnemToReplace
-        .ENDIF
-    .ENDIF
-    
-    ; remove any 0x in string
-    Invoke InString, 1, Addr szMnemToReplace, Addr szHex
-    .IF sdword ptr eax > 0
-        Invoke szRep, szMnemToReplace, Addr szTemp, Addr szHex, Addr szNull
-        Invoke szCopy, Addr szTemp, Addr szMnemToReplace
-        
-        Invoke InString, 1, Addr szMnemToReplace, Addr szHex
-        .IF sdword ptr eax > 0
-            Invoke szRep, szMnemToReplace, Addr szTemp, Addr szHex, Addr szNull
-            Invoke szCopy, Addr szTemp, Addr szMnemToReplace
-        .ENDIF
-    .ENDIF
-    
-    Invoke szCopy, Addr szMnemToReplace, Addr szMnemToReplaceWith
-    Invoke szCatStr, Addr szMnemToReplaceWith, Addr szMasmHexH    
-    
-    Invoke szRep, lpszDisasmText, lpszFormattedDisasmText, Addr szMnemToReplace, Addr szMnemToReplaceWith
 
-    ret
-
-CTAMnemonicToMasmHex ENDP
-
-
-;-------------------------------------------------------------------------------------
-; Adjust mnemonic to remove 0x and add h for masm style hex values
-;-------------------------------------------------------------------------------------
-CTAInternalCallToMasmHex PROC USES EBX lpszDisasmText:DWORD, lpszFormattedDisasmText:DWORD, bii:DWORD
-    LOCAL pCallInstruction:DWORD
-    
-    mov ebx, bii
-    lea eax, [ebx].BASIC_INSTRUCTION_INFO.instruction
-    mov pCallInstruction, eax
-    .IF g_FormatType == 1
-        Invoke szRep, pCallInstruction, lpszFormattedDisasmText, Addr szHex, Addr szNull
-        Invoke szCatStr, lpszFormattedDisasmText, Addr szMasmHexH
-    .ELSE
-        Invoke szCopy, pCallInstruction, lpszFormattedDisasmText
-    .ENDIF
-    ;DbgDump ebx, SIZEOF BASIC_INSTRUCTION_INFO
-    ret
-
-CTAInternalCallToMasmHex ENDP
 
 
 
@@ -1851,12 +1771,6 @@ Strip_x64dbg_calls PROC USES EDI ESI lpszCallText:DWORD, lpszAPIFunction:DWORD
     
         movzx eax, byte ptr [esi]
         .WHILE al != '@' && al != '>' && al != 0
-    ;        .IF al == 0h
-    ;            mov edi, lpszAPIFunction
-    ;            mov byte ptr [edi], 0h ; null out string
-    ;            mov eax, FALSE
-    ;            ret
-    ;        .ENDIF
             mov byte ptr [edi], al
             inc edi
             inc esi
@@ -1887,11 +1801,6 @@ Strip_x64dbg_segments PROC USES EBX EDI ESI lpszDisasmText:DWORD, lpszFormattedD
                 mov byte ptr [edi], 0h ; add null to string
                 mov eax, FALSE
                 ret
-    ;        .ELSEIF al == "x"
-    ;            dec edi
-    ;            dec edi
-    ;        .ELSE
-    ;            mov byte ptr [edi], al
             .ENDIF
             mov byte ptr [edi], al
             inc edi
@@ -1905,22 +1814,7 @@ Strip_x64dbg_segments PROC USES EBX EDI ESI lpszDisasmText:DWORD, lpszFormattedD
     
         movzx eax, byte ptr [esi]
         .WHILE al != 0
-            .IF g_FormatType == 1
-                .IF al == "x"
-                    movzx ebx, byte ptr [esi-1]
-                    .IF bl == "0"
-                        dec edi
-                        dec edi
-                    .ELSE
-                        mov byte ptr [edi], al
-                    .ENDIF
-                .ELSE
-                    mov byte ptr [edi], al
-                .ENDIF
-            .ELSE
-                mov byte ptr [edi], al
-            .ENDIF
-    ;        mov byte ptr [edi], al
+            mov byte ptr [edi], al
             inc edi
             inc esi
             movzx eax, byte ptr [esi]
@@ -1981,6 +1875,293 @@ Strip_x64dbg_modulename PROC lpszDisasmText:DWORD, lpszFormattedDisasmText:DWORD
     .ENDIF
     ret
 Strip_x64dbg_modulename ENDP
+
+
+
+;=====================================================================================
+; Converts values to c style (dwstyle=0) or masm style (dwstyle=1)
+;-------------------------------------------------------------------------------------
+ConvertHexValues PROC USES EBX EDI ESI lpszStringToParse:DWORD, lpszStringOutput:DWORD, dwStyle:DWORD
+    LOCAL dwLenString:DWORD
+    LOCAL dwCurrentPos:DWORD
+    LOCAL dwStartHex:DWORD
+    LOCAL dwEndHex:DWORD
+    LOCAL dwTmpPos:DWORD
+    LOCAL ArrayHex[16]:DWORD
+    LOCAL dwCountHex:DWORD
+    LOCAL dwCurrentHex:DWORD
+    LOCAL bHexFlag:DWORD
+    
+    .IF lpszStringToParse == 0 || lpszStringOutput == 0
+        mov eax, FALSE
+        ret
+    .ENDIF
+    
+    Invoke szLen, lpszStringToParse
+    .IF eax == 0
+        mov eax, FALSE
+        ret
+    .ENDIF
+    mov dwLenString, eax
+    
+    mov esi, lpszStringToParse
+    mov edi, lpszStringOutput
+    
+    mov bHexFlag, FALSE
+    mov dwCountHex, 0
+    mov dwStartHex, 0
+    mov dwEndHex,0 
+    mov dwCurrentPos, 0
+    mov eax, 0
+    .WHILE eax < dwLenString
+
+Continue:
+        
+        mov esi, lpszStringToParse
+        add esi, dwCurrentPos
+        movzx eax, byte ptr [esi]
+   
+        .IF (al >= 'a' && al <= 'f') || (al >= 'A' && al <= 'F') || (al >= '0' && al <= '9') 
+            ; might be a hex value
+            .IF al == '0'
+                movzx ebx, byte ptr [esi+1]
+                .IF bl == 'x'
+                    
+                    mov eax, dwCurrentPos
+                    mov dwStartHex, eax
+                    mov dwTmpPos, eax
+                    add dwTmpPos, 2
+                    add esi, 2
+                    ;add dwCurrentPos, 2
+
+                .ELSE
+                    mov eax, dwCurrentPos
+                    mov dwStartHex, eax
+                    mov dwTmpPos, eax
+                .ENDIF
+            .ELSE
+                mov eax, dwCurrentPos
+                mov dwStartHex, eax
+                mov dwTmpPos, eax
+            .ENDIF
+            
+            movzx eax, byte ptr [esi]
+            .WHILE (al >= 'a' && al <= 'f') || (al >= 'A' && al <= 'F') || (al >= '0' && al <= '9') ;&& al != 0 ;|| al == 'x'
+                inc dwTmpPos
+                inc esi
+                movzx eax, byte ptr [esi]
+                .IF al == 0
+                    .BREAK
+                .ENDIF
+            .ENDW
+            
+            movzx eax, byte ptr [esi]
+            .IF al == 0
+                mov eax, dwLenString
+                mov dwCurrentPos, eax
+                mov eax, dwTmpPos
+                mov dwEndHex, eax
+                jmp ProcessHex
+
+            .ELSEIF al == ']' || al == '(' || al == ')' || al == '[' || al == ',' || al == '*' || al == '+' || al == '-' ;|| al == ' ' 
+                .IF al == ' '
+                    ; doublecheck
+                    movzx eax, byte ptr [esi-2]
+                    .IF al >= 'g' && al <= 'z' || al >= 'G' && al <= 'Z'
+                        ; false positive
+                        mov eax, dwTmpPos
+                        mov dwCurrentPos, eax
+                        mov dwStartHex, 0
+                        mov dwEndHex,0                        
+                    .ELSE
+                        mov eax, dwTmpPos
+                        mov dwCurrentPos, eax
+                        mov dwEndHex, eax
+                        jmp ProcessHex
+                    .ENDIF
+                .ELSE
+                    mov eax, dwTmpPos
+                    mov dwCurrentPos, eax
+                    mov dwEndHex, eax
+                    jmp ProcessHex
+                .ENDIF
+            
+            .ELSE ; false 
+                mov eax, dwTmpPos
+                mov dwCurrentPos, eax
+                mov dwStartHex, 0
+                mov dwEndHex,0
+            .ENDIF
+
+        .ELSEIF al == 0
+            .IF dwStartHex != 0
+                mov eax, dwLenString
+                mov dwEndHex, eax
+                jmp ProcessHex
+            .ENDIF
+        
+        .ELSEIF al >= 'g' && al <= 'z' || al >= 'G' && al <= 'Z' ; skip over most words that start with g-z and any subsequent ascii and numerics till end of word
+            movzx eax, byte ptr [esi]
+            .WHILE (al >= 'a' && al <= 'z') || (al >= 'A' && al <= 'Z') || (al >= '0' && al <= '9') ;&& al != 0
+                inc dwCurrentPos
+                inc esi
+                movzx eax, byte ptr [esi]
+                .IF al == 0
+                    .BREAK
+                .ENDIF                
+            .ENDW
+            
+        .ELSE
+            inc dwCurrentPos
+        .ENDIF
+
+        mov eax, dwCurrentPos
+    .ENDW
+
+    .IF dwStartHex == 0
+        jmp Finished
+    .ENDIF
+
+ProcessHex:
+
+    ; do some processing
+    
+    mov ebx, 8
+    mov eax, dwCountHex
+    mul ebx
+    lea ebx, ArrayHex
+    add ebx, eax
+    mov eax, dwStartHex
+    mov [ebx], eax
+    mov eax, dwEndHex
+    mov [ebx+4], eax
+    inc dwCountHex
+    
+    mov eax, dwCurrentPos
+    .IF eax < dwLenString
+        mov dwStartHex, 0
+        mov dwEndHex,0
+        mov bHexFlag, FALSE     
+        jmp Continue
+    .ENDIF
+
+Finished:
+    ;PrintDec dwCountHex
+    ;lea ebx, ArrayHex
+    ;DbgDump ebx, 16
+
+    mov esi, lpszStringToParse
+    mov edi, lpszStringOutput
+    
+    mov dwCurrentHex, 0
+    mov dwCurrentPos, 0
+    mov eax, 0
+    .WHILE eax < dwLenString
+    
+        mov eax, dwCurrentHex
+        .IF eax < dwCountHex
+            mov ebx, 8
+            mov eax, dwCurrentHex
+            mul ebx
+            lea ebx, ArrayHex
+            add ebx, eax
+            mov eax, [ebx]
+            mov dwStartHex, eax
+            mov eax, [ebx+4]
+            mov dwEndHex, eax
+        .ELSE
+            mov dwStartHex, 0
+            mov dwEndHex,0 
+        .ENDIF
+
+        .IF dwStartHex != 0
+            mov eax, dwCurrentPos
+            .WHILE eax < dwStartHex
+                movzx eax, byte ptr [esi]
+                mov byte ptr [edi], al
+                inc esi
+                inc edi
+                inc dwCurrentPos
+                mov eax, dwCurrentPos
+            .ENDW
+            
+            ; start of hex
+            
+            .IF dwStyle == 0 ; c style hex - add 0x before all hex values
+                movzx eax, byte ptr [esi]
+                .IF al == '0'
+                    movzx ebx, byte ptr [esi+1]
+                    .IF bl == 'x'                
+                        ; already has 0x
+                    .ELSE
+                        ; add 0x
+                        mov byte ptr [edi], '0'
+                        inc edi
+                        mov byte ptr [edi], 'x'
+                        inc edi
+                    .ENDIF
+                .ELSE
+                    ; add 0x
+                    mov byte ptr [edi], '0'
+                    inc edi
+                    mov byte ptr [edi], 'x'
+                    inc edi
+                .ENDIF
+            
+            .ELSE ; masm style hex - add 0 if A-F and remove 0x before hex values
+                movzx eax, byte ptr [esi]
+                .IF al == '0'
+                    movzx ebx, byte ptr [esi+1]
+                    .IF bl == 'x'
+                        add esi, 2
+                        add dwCurrentPos, 2
+                        movzx eax, byte ptr [esi]
+                    .ENDIF
+                .ENDIF
+                
+                .IF al >= 'A' && al <= 'F'
+                    mov byte ptr [edi], '0'
+                    inc edi
+                .ENDIF
+                
+            .ENDIF
+            
+            mov eax, dwCurrentPos
+            .WHILE eax < dwEndHex
+                movzx eax, byte ptr [esi]
+                mov byte ptr [edi], al
+                inc esi
+                inc edi
+                inc dwCurrentPos
+                mov eax, dwCurrentPos
+            .ENDW
+            
+            
+            .IF dwStyle == 1 ; masm style hex - append 'h'
+                mov byte ptr [edi], 'h'
+                inc edi
+            .ENDIF
+            
+            inc dwCurrentHex
+            
+        .ELSE
+            movzx eax, byte ptr [esi]
+            mov byte ptr [edi], al
+            inc esi
+            inc edi
+            inc dwCurrentPos
+        
+        .ENDIF
+        
+        mov eax, dwCurrentPos
+    .ENDW
+    mov byte ptr [edi], 0h
+    
+    mov eax, TRUE
+    ret
+
+ConvertHexValues ENDP
+
 
 
 ;-------------------------------------------------------------------------------------
