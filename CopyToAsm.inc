@@ -49,6 +49,7 @@ Strip_x64dbg_segments               PROTO :DWORD, :DWORD
 Strip_x64dbg_anglebrackets          PROTO :DWORD, :DWORD
 Strip_x64dbg_modulename             PROTO :DWORD, :DWORD
 ConvertHexValues                    PROTO :DWORD, :DWORD, :DWORD
+IsCallApiNameHexOnly                PROTO :DWORD
 
 cbCTAC                              PROTO C :DWORD, :DWORD
 cbCTAR                              PROTO C :DWORD, :DWORD

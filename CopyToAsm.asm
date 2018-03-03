@@ -713,7 +713,7 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
         
         ; Check instruction is in our call table as a destination for a call, if so insert a label
         Invoke CTAAddressInCallTable, dwCurrentAddress
-        .IF eax != 0
+        .IF eax != -1
             Invoke CTALabelFromCallEntry, eax, Addr szLabelX
             .IF dwOutput == 0 ; output to clipboard
                 Invoke szCatStr, ptrClipboardData, Addr szCRLF
@@ -737,9 +737,17 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             mov eax, bii.address
             mov JmpDestination, eax
             Invoke Strip_x64dbg_calls, Addr szDisasmText, Addr szCALLFunction
-            Invoke szCopy, Addr szCall, Addr szFormattedDisasmText
-            Invoke szCatStr, Addr szFormattedDisasmText, Addr szCALLFunction
             
+            Invoke IsCallApiNameHexOnly, Addr szCALLFunction
+            .IF eax == FALSE
+                Invoke szCopy, Addr szCall, Addr szFormattedDisasmText
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szCALLFunction
+            .ELSE
+                Invoke szCopy, Addr szCall, Addr szFormattedDisasmText
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szUnderscore
+                Invoke szCatStr, Addr szFormattedDisasmText, Addr szCALLFunction
+             .ENDIF            
+
             ;PrintDec bii.address
             ;PrintDec cbii.address
             
@@ -801,12 +809,13 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             Invoke Strip_x64dbg_segments, Addr szDisasmText, Addr szFormattedDisasmText
             Invoke Strip_x64dbg_anglebrackets, Addr szFormattedDisasmText, Addr szDisasmText
             Invoke Strip_x64dbg_modulename, Addr szDisasmText, Addr szFormattedDisasmText
-
+            
+            Invoke ConvertHexValues, Addr szFormattedDisasmText, Addr szDisasmText, g_FormatType
+            Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText
 
         .ENDIF
         
-        Invoke ConvertHexValues, Addr szFormattedDisasmText, Addr szDisasmText, g_FormatType
-        Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText
+
         
         .IF dwOutput == 0 ; output to clipboard
             Invoke szCatStr, ptrClipboardData, Addr szFormattedDisasmText
@@ -1084,7 +1093,7 @@ CTABuildCallTable PROC USES EBX dwStartAddress:DWORD, dwFinishAddress:DWORD
             .ELSE ; internal function call        
                 
                 Invoke CTAAddressInCallTable, CallDestination
-                .IF eax == 0
+                .IF eax == -1
                 
                     mov ebx, ptrCallEntry
                     mov eax, CallDestination
@@ -1210,7 +1219,7 @@ CTAAddressInJmpTable ENDP
 
 
 ;-------------------------------------------------------------------------------------
-; returns 0 if address is not in CALLTABLE, otherwise returns an 1-based index in eax
+; returns -1 if address is not in CALLTABLE, otherwise returns an index in eax
 ; each address can be checked to see if it a destination for a call instruction
 ; if it is then a label can be created an inserted before the instruction
 ;-------------------------------------------------------------------------------------
@@ -1219,7 +1228,7 @@ CTAAddressInCallTable PROC USES EBX dwAddress:DWORD
     LOCAL ptrCallEntry:DWORD
     
     .IF CALLTABLE == 0 || CALLTABLE_ENTRIES_TOTAL == 0
-        mov eax, 0
+        mov eax, -1
         ret
     .ENDIF
     
@@ -1232,14 +1241,14 @@ CTAAddressInCallTable PROC USES EBX dwAddress:DWORD
         mov eax, [ebx].CALLTABLE_ENTRY.dwAddress
         .IF eax == dwAddress
             mov eax, nCallEntry
-            inc eax ; for 1 based index
+            ;inc eax ; for 1 based index
             ret
         .ENDIF
         add ptrCallEntry, SIZEOF CALLTABLE_ENTRY
         inc nCallEntry
         mov eax, nCallEntry
     .ENDW
-    mov eax, 0
+    mov eax, -1
     ret
 CTAAddressInCallTable ENDP
 
@@ -1681,7 +1690,7 @@ CTALabelFromCallEntry PROC USES EBX dwCallEntry:DWORD, lpszLabel:DWORD
     
     mov ebx, SIZEOF CALLTABLE_ENTRY
     mov eax, dwCallEntry
-    dec eax ; adjust for 1 based index
+    ;dec eax ; adjust for 1 based index
     .IF eax > CALLTABLE_ENTRIES_TOTAL
         Invoke szCopy, Addr szErrCallLabel, lpszLabel
         ret
@@ -1697,8 +1706,15 @@ CTALabelFromCallEntry PROC USES EBX dwCallEntry:DWORD, lpszLabel:DWORD
     Invoke GuiGetDisassembly, dwCallAddress, Addr szCallLabelText
     
     Invoke Strip_x64dbg_calls, Addr szCallLabelText, Addr szCALLFunction
-    Invoke szCatStr, Addr szCALLFunction, Addr szColon
-    Invoke szCopy, Addr szCALLFunction, lpszLabel
+    Invoke IsCallApiNameHexOnly, Addr szCALLFunction
+    .IF eax == FALSE
+        Invoke szCatStr, Addr szCALLFunction, Addr szColon
+        Invoke szCopy, Addr szCALLFunction, lpszLabel
+    .ELSE
+        Invoke szCopy, Addr szUnderscore, lpszLabel
+        Invoke szCatStr, lpszLabel, Addr szCALLFunction
+        Invoke szCatStr, lpszLabel, Addr szColon
+    .ENDIF
     ret
 
 CTALabelFromCallEntry ENDP
@@ -2204,6 +2220,37 @@ Finished:
     ret
 
 ConvertHexValues ENDP
+
+
+;-------------------------------------------------------------------------------------
+; determines if CALL <apiname> is a hex value only
+;-------------------------------------------------------------------------------------
+IsCallApiNameHexOnly PROC USES EBX lpszApiName:DWORD
+    
+    .IF lpszApiName == 0
+        mov eax, FALSE
+        ret
+    .ENDIF
+
+    mov ebx, lpszApiName
+    movzx eax, byte ptr [ebx]
+    .WHILE al != 0
+        
+        .IF (al >= 'A' && al <= 'F') || (al >= '0' && al <= '9') ; al >= 'a' && al <= 'f'
+            ; good, continue to check rest to see if hex chars
+        .ELSE
+            mov eax, FALSE
+            ret
+        .ENDIF
+        
+        inc ebx
+        movzx eax, byte ptr [ebx]
+    .ENDW
+    ; got here, means entire string was checked and all chars are hex only
+    mov eax, TRUE
+    ret
+
+IsCallApiNameHexOnly ENDP
 
 
 
