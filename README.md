@@ -18,6 +18,11 @@ A plugin to copy a selected disassembly range in the x64dbg cpu view tab and con
 * Format hex values as C style (0x) or Masm style.
 * Registered commands: `CopyToAsmClip` (`ctac`) and `CopyToAsmRef` (`ctar`)
 
+## Options
+![](https://github.com/mrfearless/CopyToAsm-Plugin-x86/blob/master/images/cta_label_options.png) 
+![](https://github.com/mrfearless/CopyToAsm-Plugin-x86/blob/master/images/cta_comment_options.png) 
+![](https://github.com/mrfearless/CopyToAsm-Plugin-x86/blob/master/images/cta_format_options.png) 
+
 ## How to install
 
 * If x32dbg (x64dbg 32bit) is currently running, stop and exit.
@@ -30,6 +35,7 @@ A plugin to copy a selected disassembly range in the x64dbg cpu view tab and con
 * Created with the [x64dbg Plugin SDK For x86 Assembler](https://github.com/mrfearless/x64dbg-Plugin-SDK-For-x86-Assembler)
 * A RadASM project (.rap) is used to manage and compile the plugin. The RadASM IDE can be downloaded [here](http://www.softpedia.com/get/Programming/File-Editors/RadASM.shtml)
 * Some plugins make use of the MASM32 SDK found [here](http://www.masm32.com/masmdl.htm)
+* Wiki entry: [szLen from Masm32 library CopyToAsm example](https://github.com/mrfearless/CopyToAsm-Plugin-x86/wiki/szLen-from-MASM32-Library---CopyToAsm-Example)
 
 ## x64dbg
 * [x64dbg website](http://x64dbg.com)
