@@ -742,6 +742,11 @@ DoCopyToAsm PROC USES EBX ECX dwOutput:DWORD
             .IF eax == FALSE
                 Invoke szCopy, Addr szCall, Addr szFormattedDisasmText
                 Invoke szCatStr, Addr szFormattedDisasmText, Addr szCALLFunction
+                
+                ; convert any 'call dword ptr [somehex]' type calls to appropriate hex values
+                Invoke ConvertHexValues, Addr szFormattedDisasmText, Addr szDisasmText, g_FormatType
+                Invoke szCopy, Addr szDisasmText, Addr szFormattedDisasmText                   
+                
             .ELSE
                 Invoke szCopy, Addr szCall, Addr szFormattedDisasmText
                 Invoke szCatStr, Addr szFormattedDisasmText, Addr szUnderscore
@@ -1829,6 +1834,10 @@ Strip_x64dbg_calls PROC USES EDI ESI lpszCallText:DWORD, lpszAPIFunction:DWORD
         .ENDIF
     
         movzx eax, byte ptr [esi]
+        .IF al == '@' ; check for fastcall functions starting with @ - https://github.com/mrfearless/CopyToAsm-Plugin-x86/issues/1
+            inc esi
+            movzx eax, byte ptr [esi]
+        .ENDIF
         .WHILE al != '@' && al != '>' && al != 0
             mov byte ptr [edi], al
             inc edi
